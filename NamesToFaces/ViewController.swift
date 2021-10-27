@@ -19,6 +19,9 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
     @objc func addNewPerson() {
         let picker = UIImagePickerController()
         picker.allowsEditing = true
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            picker.sourceType = .camera
+        }
         picker.delegate = self
         present(picker, animated: true)
     }
@@ -71,15 +74,31 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
     override func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         let person = people[indexPath.item]
         
-        let ac = UIAlertController(title: "Rename person", message: nil, preferredStyle: .alert)
-        ac.addTextField()
-        ac.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        ac.addAction(UIAlertAction(title: "OK", style: .default, handler: { [unowned ac, weak self] _ in
-            guard let newName = ac.textFields?[0].text else { return }
-            person.name = newName
+        let ac = UIAlertController(title: "Choose card operation:", message: nil, preferredStyle: .alert)
+        let deleteAction = UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
+            self?.people.remove(at: indexPath.item)
             
+            if let imageURL = self?.getDocumentsDirectory().appendingPathComponent(person.image) {
+                try? FileManager.default.removeItem(at: imageURL)
+            }
             self?.collectionView.reloadData()
-        }))
+        }
+        let renameAction = UIAlertAction(title: "Rename", style: .default) {
+            [weak self] _ in
+            let newAC = UIAlertController(title: "Rename person", message: nil, preferredStyle: .alert)
+            newAC.addTextField()
+            newAC.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+            newAC.addAction(UIAlertAction(title: "OK", style: .default, handler: { [unowned newAC, weak self] _ in
+                guard let newName = newAC.textFields?[0].text else { return }
+                person.name = newName
+                
+                self?.collectionView.reloadData()
+            }))
+            
+            self?.present(newAC, animated: false)
+        }
+        ac.addAction(deleteAction)
+        ac.addAction(renameAction)
         
         present(ac, animated: true)
     }
