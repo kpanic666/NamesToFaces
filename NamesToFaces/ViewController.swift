@@ -14,6 +14,14 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         super.viewDidLoad()
         
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNewPerson))
+        
+        let defaults = UserDefaults.standard
+        
+        if let savedPeople = defaults.object(forKey: "people") as? Data {
+            if let decodedPeople = try? NSKeyedUnarchiver.unarchiveTopLevelObjectWithData(savedPeople) as? [Person] {
+                people = decodedPeople
+            }
+        }
     }
     
     @objc func addNewPerson() {
@@ -39,6 +47,7 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         let person = Person(name: "Unknown", image: imageName)
         people.append(person)
         collectionView.reloadData()
+        save()
         
         dismiss(animated: true)
     }
@@ -82,6 +91,7 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
                 try? FileManager.default.removeItem(at: imageURL)
             }
             self?.collectionView.reloadData()
+            self?.save()
         }
         let renameAction = UIAlertAction(title: "Rename", style: .default) {
             [weak self] _ in
@@ -93,6 +103,7 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
                 person.name = newName
                 
                 self?.collectionView.reloadData()
+                self?.save()
             }))
             
             self?.present(newAC, animated: false)
@@ -101,6 +112,13 @@ class ViewController: UICollectionViewController, UIImagePickerControllerDelegat
         ac.addAction(renameAction)
         
         present(ac, animated: true)
+    }
+    
+    func save() {
+        if let savedData = try? NSKeyedArchiver.archivedData(withRootObject: people, requiringSecureCoding: false) {
+            let defaults = UserDefaults.standard
+            defaults.set(savedData, forKey: "people")
+        }
     }
 }
 
